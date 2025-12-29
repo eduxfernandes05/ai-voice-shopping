@@ -85,7 +85,7 @@ export function SelectionPage() {
         </motion.div>
 
         <VoiceAssistant
-          onRecommendation={(serviceNumbers) => {
+          onToggleService={(serviceNumbers) => {
             const serviceMap: Record<number, string> = {
               1: 'consulting-strategy',
               2: 'consulting-tech',
@@ -96,38 +96,26 @@ export function SelectionPage() {
               7: 'training-team'
             }
             
-            const idsToSelect = serviceNumbers
+            const idsToToggle = serviceNumbers
               .map(num => serviceMap[num])
               .filter(id => id !== undefined)
             
             setSelectedServices(current => {
               const newSelections = [...current]
-              idsToSelect.forEach(id => {
-                if (!newSelections.includes(id)) {
+              idsToToggle.forEach(id => {
+                const index = newSelections.indexOf(id)
+                if (index > -1) {
+                  // Se já está selecionado, remove (untoggle)
+                  newSelections.splice(index, 1)
+                  console.log('❌ Untoggled service:', id)
+                } else {
+                  // Se não está selecionado, adiciona (toggle)
                   newSelections.push(id)
+                  console.log('✅ Toggled service:', id)
                 }
               })
               return newSelections
             })
-          }}
-          onRemoveRecommendation={(serviceNumbers) => {
-            const serviceMap: Record<number, string> = {
-              1: 'consulting-strategy',
-              2: 'consulting-tech',
-              3: 'development-web',
-              4: 'development-mobile',
-              5: 'design-ux',
-              6: 'support-premium',
-              7: 'training-team'
-            }
-            
-            const idsToRemove = serviceNumbers
-              .map(num => serviceMap[num])
-              .filter(id => id !== undefined)
-            
-            setSelectedServices(current => 
-              current.filter(id => !idsToRemove.includes(id))
-            )
           }}
         />
 

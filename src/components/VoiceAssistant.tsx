@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 interface VoiceAssistantProps {
-  onRecommendation?: (modalityNumbers: number[]) => void
-  onRemoveRecommendation?: (modalityNumbers: number[]) => void
+  onToggleService?: (serviceNumbers: number[]) => void
 }
 
 // Azure OpenAI Realtime API configuration
@@ -17,7 +16,7 @@ if (!AZURE_ENDPOINT || !API_KEY) {
   console.error('Missing Azure OpenAI credentials. Please set VITE_AZURE_REALTIME_ENDPOINT and VITE_AZURE_REALTIME_API_KEY in your .env file')
 }
 
-export function VoiceAssistant({ onRecommendation, onRemoveRecommendation }: VoiceAssistantProps) {
+export function VoiceAssistant({ onToggleService }: VoiceAssistantProps) {
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [conversation, setConversation] = useState<Array<{role: 'user' | 'assistant', text: string}>>([])
@@ -73,6 +72,11 @@ export function VoiceAssistant({ onRecommendation, onRemoveRecommendation }: Voi
     setCurrentAssistantMessage('')
     
     try {
+      // Validar credenciais
+      if (!AZURE_ENDPOINT || !API_KEY || !DEPLOYMENT_NAME) {
+        throw new Error('Missing Azure OpenAI credentials. Please check your .env file.')
+      }
+      
       // Obter microfone
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -235,42 +239,27 @@ Examples:
                 return updated
               })
               
-              // Extrair modalidades para ADICIONAR (procura por "modalidade 1", "recomendo 2", etc)
-              const modalityMatches = finalText.match(/modalidade[s]?\s+(\d+)/gi)
-              if (modalityMatches && onRecommendation) {
-                const numbers = modalityMatches
-                  .map(match => {
-                    const num = match.match(/\d+/)
-                    return num ? parseInt(num[0]) : null
-                  })
-                  .filter((n): n is number => n !== null && n >= 1 && n <= 7)
-                
-                if (numbers.length > 0) {
-                  console.log('🎯 Modalidades para adicionar:', numbers)
-                  onRecommendation(numbers)
-                }
-              }
-              
-              // Extrair modalidades para REMOVER (procura por "não precisa", "remover", "tirar", "já não é necessário")
-              const removePatterns = [
-                /(?:não\s+precis[ao]|remov[ae]r?|tirar|já\s+não\s+(?:é\s+)?necessári[ao]|descartar|eliminar)\s+(?:a\s+)?(?:modalidade\s+)?(\d+)/gi,
-                /(?:modalidade\s+)?(\d+)\s+(?:não\s+(?:é\s+)?precis[ao]|já\s+não|desnecessári[ao])/gi
+              // Extrair números de serviços mencionados para fazer TOGGLE
+              const servicePatterns = [
+                /service\s+(?:number\s+)?(\d+)/gi,
+                /(?:choose|select|add|remove|toggle|unselect|deselect)\s+(?:service\s+)?(?:number\s+)?(\d+)/gi,
+                /(?:service\s+)?(?:number\s+)?(\d+)/gi
               ]
               
-              const numbersToRemove: number[] = []
-              removePatterns.forEach(pattern => {
+              const servicesToToggle: number[] = []
+              servicePatterns.forEach(pattern => {
                 let match
                 while ((match = pattern.exec(finalText)) !== null) {
                   const num = parseInt(match[1])
-                  if (num >= 1 && num <= 7 && !numbersToRemove.includes(num)) {
-                    numbersToRemove.push(num)
+                  if (num >= 1 && num <= 7 && !servicesToToggle.includes(num)) {
+                    servicesToToggle.push(num)
                   }
                 }
               })
               
-              if (numbersToRemove.length > 0 && onRemoveRecommendation) {
-                console.log('❌ Modalidades para remover:', numbersToRemove)
-                onRemoveRecommendation(numbersToRemove)
+              if (servicesToToggle.length > 0 && onToggleService) {
+                console.log('🔄 Services to toggle:', servicesToToggle)
+                onToggleService(servicesToToggle)
               }
             }
             
